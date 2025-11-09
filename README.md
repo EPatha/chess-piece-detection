@@ -30,3 +30,4 @@ Asumsi orientasi:
 Jika Anda ingin fitur tambahan (deteksi otomatis sudut papan, deteksi bidak otomatis, output urutan langkah, atau integrasi dengan engine), beri tahu saya dan saya akan tambahkan contoh dan/atau model deteksi.
 
 just upload for github
+add readme
