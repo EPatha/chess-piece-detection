@@ -262,18 +262,40 @@ def snapshot():
                 return Response(buffer.tobytes(), mimetype='image/jpeg')
     except Exception as e:
         app.logger.debug('OpenCV snapshot failed: %s', e)
-
-    # Fallback: try HTTP GET for a single-frame endpoint (DroidCam often exposes /shot.jpg or similar)
+    # Fallback 1: try HTTP GET for a single-frame endpoint (e.g. /shot.jpg)
     candidates = [source, source.rstrip('/') + '/shot.jpg', source.rstrip('/') + '/image.jpg', source.rstrip('/') + '/photo.jpg']
     for url in candidates:
         try:
             resp = requests.get(url, timeout=3)
             ct = resp.headers.get('Content-Type', '')
-            if resp.status_code == 200 and ('image' in ct or resp.content[:4] == b'\xff\xd8\xff\xe0'):
+            if resp.status_code == 200 and (('image' in ct) or (len(resp.content) > 4 and resp.content[:4] == b'\xff\xd8\xff\xe0')):
                 return Response(resp.content, mimetype='image/jpeg')
         except Exception as e:
             app.logger.debug('HTTP snapshot try failed (%s): %s', url, e)
 
+    # Fallback 2: if the source is an MJPEG stream, try to open it and extract the first JPEG frame
+    try:
+        resp = requests.get(source, stream=True, timeout=5)
+        if resp.status_code == 200:
+            buf = b''
+            for chunk in resp.iter_content(chunk_size=4096):
+                if not chunk:
+                    continue
+                buf += chunk
+                start = buf.find(b'\xff\xd8')
+                end = buf.find(b'\xff\xd9')
+                if start != -1 and end != -1 and end > start:
+                    jpg = buf[start:end+2]
+                    try:
+                        return Response(jpg, mimetype='image/jpeg')
+                    except Exception:
+                        break
+        else:
+            app.logger.debug('MJPEG snapshot HTTP status %s for %s', resp.status_code, source)
+    except Exception as e:
+        app.logger.debug('MJPEG snapshot attempt failed: %s', e)
+
+    app.logger.debug('Snapshot: all fallbacks failed for source=%s', source)
     return 'Cannot open source or retrieve snapshot', 500
 
 
