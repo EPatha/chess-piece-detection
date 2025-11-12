@@ -18,3 +18,5 @@ ultralytics>=8.0.118
 # Web UI
 Flask>=2.0
 requests
+PyQt5>=5.15
+mss>=9.0
