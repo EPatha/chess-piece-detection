@@ -13,7 +13,7 @@ Usage (dev):
 Open http://localhost:5000 in your browser, masukkan URL stream, Start, lalu Kalibrasi untuk klik 4 sudut.
 """
 
-from flask import Flask, render_template, Response, request, jsonify
+from flask import Flask, render_template, Response, request, jsonify, send_from_directory
 import threading
 import time
 import io
@@ -124,6 +124,16 @@ def gen_frames(source):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+# Fallback static route: if Flask for some reason doesn't serve files from the default
+# static folder, this route will explicitly serve files from ./static.
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    try:
+        return send_from_directory('static', filename)
+    except Exception:
+        return ("", 404)
 
 
 @app.route('/set_source', methods=['POST'])
