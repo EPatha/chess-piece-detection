@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chess Vision UI</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 20px; }
+      #videoWrap { position: relative; display: inline-block; }
+      canvas { border: 1px solid #ccc; }
+    </style>
+  </head>
+  <body>
+    <h2>Chess Vision - Stream & Calibration</h2>
+
+    <label>Stream URL (DroidCam):</label>
+    <input id="source" type="text" size="50" value="http://192.168.0.101:4747/video">
+    <button id="start">Start</button>
+    <button id="snapshotBtn">Calibrate (snapshot)</button>
+    <p>Click 4 points on the snapshot in order: TL, TR, BR, BL. Then click Send Points.</p>
+
+    <div id="videoWrap">
+      <img id="video" src="" alt="video" width="640" height="480">
+    </div>
+
+    <div id="calib" style="margin-top:10px; display:none;">
+      <canvas id="snapCanvas"></canvas>
+      <div>
+        <button id="sendPoints">Send Points</button>
+        <button id="resetPoints">Reset</button>
+      </div>
+      <p id="pointsList"></p>
+    </div>
+
+    <script src="/static/main.js"></script>
+  </body>
+</html>
