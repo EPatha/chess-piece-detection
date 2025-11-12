@@ -1,4 +1,19 @@
-opencv-python>=4.5.5.64
+# Core packages
 numpy>=1.21
+Pillow>=9.0
+
+# Computer vision
+opencv-python>=4.5.5.64
+# If you run in a headless/server environment, you may prefer:
+# opencv-python-headless>=4.5.5.64
+
+# Deep learning (PyTorch) - may require platform-specific wheel selection
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# YOLO / utilities
 ultralytics>=8.0.118
+
+# Web UI
 Flask>=2.0
