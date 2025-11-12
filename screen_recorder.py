@@ -24,35 +24,9 @@ import cv2
 import mss
 
 
-class ScreenSelectionWindow(QtWidgets.QWidget):
-    """Full-screen transparent window that allows rubber-band selection."""
-
-    regionSelected = QtCore.pyqtSignal(QtCore.QRect)
-
-    def __init__(self):
-        super().__init__()
-        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.FramelessWindowHint)
-        self.setWindowState(self.windowState() | QtCore.Qt.WindowFullScreen)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-        self.rubberBand = QtWidgets.QRubberBand(QtWidgets.QRubberBand.Rectangle, self)
-        self.origin = QtCore.QPoint()
-
-    def mousePressEvent(self, event):
-        self.origin = event.pos()
-        self.rubberBand.setGeometry(QtCore.QRect(self.origin, QtCore.QSize()))
-        self.rubberBand.show()
-
-    def mouseMoveEvent(self, event):
-        if not self.origin.isNull():
-            rect = QtCore.QRect(self.origin, event.pos()).normalized()
-            self.rubberBand.setGeometry(rect)
-
-    def mouseReleaseEvent(self, event):
-        rect = self.rubberBand.geometry()
-        self.rubberBand.hide()
-        self.origin = QtCore.QPoint()
-        self.regionSelected.emit(rect)
-        self.close()
+# Removed interactive screen selection. Users can now enter a crop rectangle
+# (left, top, width, height) manually in the UI. This simplifies UI and
+# avoids fullscreen transparent windows which can be problematic on some OSes.
 
 
 class RecorderWindow(QtWidgets.QWidget):
@@ -60,8 +34,24 @@ class RecorderWindow(QtWidgets.QWidget):
         super().__init__()
         self.setWindowTitle('Screen Recorder')
         self.setGeometry(200, 200, 640, 480)
+        # screen grabber
+        self.sct = mss.mss()
+        mon = self.sct.monitors[0]
 
-        self.selectBtn = QtWidgets.QPushButton('Select Region')
+        # manual region inputs (left, top, width, height)
+        self.leftSpin = QtWidgets.QSpinBox()
+        self.leftSpin.setRange(0, mon['width'])
+        self.leftSpin.setValue(0)
+        self.topSpin = QtWidgets.QSpinBox()
+        self.topSpin.setRange(0, mon['height'])
+        self.topSpin.setValue(0)
+        self.widthSpin = QtWidgets.QSpinBox()
+        self.widthSpin.setRange(1, mon['width'])
+        self.widthSpin.setValue(min(640, mon['width']))
+        self.heightSpin = QtWidgets.QSpinBox()
+        self.heightSpin.setRange(1, mon['height'])
+        self.heightSpin.setValue(min(360, mon['height']))
+
         self.startBtn = QtWidgets.QPushButton('Start Recording')
         self.stopBtn = QtWidgets.QPushButton('Stop Recording')
         self.stopBtn.setEnabled(False)
@@ -76,7 +66,14 @@ class RecorderWindow(QtWidgets.QWidget):
         self.previewLabel.setStyleSheet('background: #222; color: #eee;')
 
         controls = QtWidgets.QHBoxLayout()
-        controls.addWidget(self.selectBtn)
+        controls.addWidget(QtWidgets.QLabel('Left:'))
+        controls.addWidget(self.leftSpin)
+        controls.addWidget(QtWidgets.QLabel('Top:'))
+        controls.addWidget(self.topSpin)
+        controls.addWidget(QtWidgets.QLabel('W:'))
+        controls.addWidget(self.widthSpin)
+        controls.addWidget(QtWidgets.QLabel('H:'))
+        controls.addWidget(self.heightSpin)
         controls.addWidget(QtWidgets.QLabel('FPS:'))
         controls.addWidget(self.fpsSpin)
         controls.addWidget(self.startBtn)
@@ -86,12 +83,11 @@ class RecorderWindow(QtWidgets.QWidget):
         layout.addLayout(controls)
         layout.addWidget(self.previewLabel)
 
-        self.selectBtn.clicked.connect(self.open_selection)
         self.startBtn.clicked.connect(self.start_recording)
         self.stopBtn.clicked.connect(self.stop_recording)
 
-        self.sct = mss.mss()
-        self.selection = None  # QRect
+        # keep selection compatibility variable (not used)
+        self.selection = None
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update_preview)
         self.writer = None
@@ -105,24 +101,17 @@ class RecorderWindow(QtWidgets.QWidget):
     def on_fps_changed(self, v):
         self.frame_interval = 1.0 / v
 
-    def open_selection(self):
-        # hide main window and show full-screen selection
-        self.hide()
-        self.selwin = ScreenSelectionWindow()
-        self.selwin.regionSelected.connect(self.on_region_selected)
-        self.selwin.show()
-
-    def on_region_selected(self, rect: QtCore.QRect):
-        # rect is in screen coordinates
-        self.selection = rect
-        self.show()
-        self.update_preview()
-        QtWidgets.QMessageBox.information(self, 'Region Selected', f'Selected region: {rect.x()},{rect.y()} {rect.width()}x{rect.height()}')
+    # Removed interactive selection handlers; user provides region via spinboxes
 
     def update_preview(self):
-        if not self.selection:
+        # Use manual spinbox values for the capture region
+        left = int(self.leftSpin.value())
+        top = int(self.topSpin.value())
+        width = int(self.widthSpin.value())
+        height = int(self.heightSpin.value())
+        if width <= 0 or height <= 0:
             return
-        bbox = {'left': int(self.selection.x()), 'top': int(self.selection.y()), 'width': int(self.selection.width()), 'height': int(self.selection.height())}
+        bbox = {'left': left, 'top': top, 'width': width, 'height': height}
         img = self.sct.grab(bbox)
         arr = np.array(img)
         # BGRA -> BGR
@@ -144,12 +133,9 @@ class RecorderWindow(QtWidgets.QWidget):
                     self.writer.write(frame)
 
     def start_recording(self):
-        if not self.selection:
-            QtWidgets.QMessageBox.warning(self, 'No region', 'Please select a region first')
-            return
-        # prepare writer
-        w = int(self.selection.width())
-        h = int(self.selection.height())
+        # prepare writer using spinbox region
+        w = int(self.widthSpin.value())
+        h = int(self.heightSpin.value())
         fps = int(self.fpsSpin.value())
         out_name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save recording', os.path.expanduser('~/screen_recording.mp4'), 'MP4 files (*.mp4)')[0]
         if not out_name:
