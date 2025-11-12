@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""Simple, clean YOLOv8 PyQt UI for DroidCam / VideoCapture sources.
+"""Minimal, clean YOLOv8 PyQt UI for DroidCam / VideoCapture sources.
 
-This file provides a compact, well-indented implementation with:
-- OpenCV VideoCapture primary path
-- MJPEG fallback via requests when OpenCV can't open the HTTP URL
+Features:
+- Try OpenCV VideoCapture first (device index or many HTTP streams)
+- MJPEG fallback via requests when VideoCapture can't open the HTTP URL
 - Optional ultralytics YOLO inference (if installed)
 
-Run with the project's venv:
+Run with the project's virtualenv:
     .venv/bin/python3 yolov_ui.py
+
+Note: this is intentionally compact and single-file to replace corrupted variants.
 """
+
 import sys
 import time
 import threading
+from typing import Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import cv2
@@ -28,12 +32,12 @@ class Worker(QtCore.QObject):
     frame_ready = QtCore.pyqtSignal(np.ndarray)
     finished = QtCore.pyqtSignal()
 
-    def __init__(self, source: str, model_path: str = 'yolov8n.pt', device: str = 'cpu', fps: int = 8):
+    def __init__(self, source: str, model_path: Optional[str] = 'yolov8n.pt', device: str = 'cpu', fps: int = 8):
         super().__init__()
         self.source = source
         self.model_path = model_path
         self.device = device
-        self.fps = fps
+        self.fps = max(1, int(fps))
         self._stop = threading.Event()
 
         self.model = None
@@ -72,9 +76,10 @@ class Worker(QtCore.QObject):
             src_i = src
 
         cap = cv2.VideoCapture(src_i)
-        interval = 1.0 / max(1, int(self.fps))
+        interval = 1.0 / self.fps
         last = time.time()
 
+        # Primary: OpenCV VideoCapture
         if cap.isOpened():
             while not self._stop.is_set():
                 ret, frame = cap.read()
@@ -95,7 +100,7 @@ class Worker(QtCore.QObject):
             self.finished.emit()
             return
 
-        # MJPEG fallback
+        # MJPEG fallback for HTTP sources
         if isinstance(src, str) and src.lower().startswith('http'):
             try:
                 resp = requests.get(src, stream=True, timeout=5)
@@ -141,12 +146,12 @@ class YOLOGui(QtWidgets.QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle('YOLOv8 DroidCam UI')
-        self.resize(880, 600)
+        self.resize(900, 650)
 
         self.srcInput = QtWidgets.QLineEdit('http://127.0.0.1:4747/video')
         self.modelInput = QtWidgets.QLineEdit('yolov8n.pt')
         self.deviceInput = QtWidgets.QLineEdit('cpu')
-        self.fpsSpin = QtWidgets.QSpinBox(); self.fpsSpin.setRange(1, 30); self.fpsSpin.setValue(8)
+        self.fpsSpin = QtWidgets.QSpinBox(); self.fpsSpin.setRange(1, 60); self.fpsSpin.setValue(8)
 
         self.startBtn = QtWidgets.QPushButton('Start')
         self.stopBtn = QtWidgets.QPushButton('Stop'); self.stopBtn.setEnabled(False)
@@ -162,14 +167,14 @@ class YOLOGui(QtWidgets.QWidget):
         btns = QtWidgets.QVBoxLayout(); btns.addWidget(self.startBtn); btns.addWidget(self.stopBtn); btns.addStretch()
         top.addLayout(btns)
 
-        self.preview = QtWidgets.QLabel(); self.preview.setFixedSize(800, 450); self.preview.setStyleSheet('background:#000')
+        self.preview = QtWidgets.QLabel(); self.preview.setFixedSize(860, 480); self.preview.setStyleSheet('background:#000')
 
         main = QtWidgets.QVBoxLayout(self)
         main.addLayout(top)
         main.addWidget(self.preview)
 
-        self.thread = None
-        self.worker = None
+        self.thread: Optional[QtCore.QThread] = None
+        self.worker: Optional[Worker] = None
 
         self.startBtn.clicked.connect(self.start)
         self.stopBtn.clicked.connect(self.stop)
@@ -177,14 +182,15 @@ class YOLOGui(QtWidgets.QWidget):
     @QtCore.pyqtSlot(np.ndarray)
     def on_frame(self, frame: np.ndarray) -> None:
         h, w = frame.shape[:2]
-        qimg = QtGui.QImage(frame.data, w, h, 3*w, QtGui.QImage.Format_BGR888)
+        bytes_per_line = frame.strides[0]
+        qimg = QtGui.QImage(frame.data, w, h, bytes_per_line, QtGui.QImage.Format_BGR888)
         pix = QtGui.QPixmap.fromImage(qimg).scaled(self.preview.width(), self.preview.height(), QtCore.Qt.KeepAspectRatio)
         self.preview.setPixmap(pix)
 
     def start(self) -> None:
         src = self.srcInput.text().strip()
-        model = self.modelInput.text().strip()
-        device = self.deviceInput.text().strip()
+        model = self.modelInput.text().strip() or None
+        device = self.deviceInput.text().strip() or 'cpu'
         fps = int(self.fpsSpin.value())
 
         self.thread = QtCore.QThread()
@@ -216,6 +222,7 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+*** End Patch
 #!/usr/bin/env python3
 """YOLOv8 PyQt UI: point at a VideoCapture source (DroidCam URL or device index)
 and preview detections live.
