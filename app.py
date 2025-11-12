@@ -307,5 +307,39 @@ def video_feed():
     return Response(gen_frames(source), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
+@app.route('/mjpeg_proxy')
+def mjpeg_proxy():
+    """Simple transparent MJPEG proxy.
+
+    Usage: /mjpeg_proxy?source=http://192.168.1.22:4747/video
+    This will stream the raw bytes from the remote MJPEG and forward them to the client.
+    """
+    source = request.args.get('source') or state.get('source')
+    if not source:
+        return 'No source', 400
+
+    try:
+        resp = requests.get(source, stream=True, timeout=5)
+    except Exception as e:
+        app.logger.debug('MJPEG proxy connect failed: %s', e)
+        return jsonify({'ok': False, 'error': str(e)}), 502
+
+    # Pass through content type if available, else default to MJPEG
+    content_type = resp.headers.get('Content-Type', 'multipart/x-mixed-replace; boundary=frame')
+
+    def generate():
+        try:
+            for chunk in resp.iter_content(chunk_size=4096):
+                if chunk:
+                    yield chunk
+        finally:
+            try:
+                resp.close()
+            except Exception:
+                pass
+
+    return Response(generate(), mimetype=content_type)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, threaded=True)
