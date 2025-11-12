@@ -21,37 +21,11 @@ import threading
 from PyQt5 import QtCore, QtGui, QtWidgets
 import cv2
 import numpy as np
+import requests
 
 try:
     from ultralytics import YOLO
 except Exception:
-    YOLO = None
-
-
-class Worker(QtCore.QObject):
-    frame_ready = QtCore.pyqtSignal(np.ndarray)
-    finished = QtCore.pyqtSignal()
-
-    def __init__(self, source, model_path, device, fps=15):
-        super().__init__()
-        self.source = source
-        self.model_path = model_path
-        self.device = device
-        self.fps = fps
-        self._stop = threading.Event()
-
-        self.model = None
-        if YOLO is not None:
-            try:
-                self.model = YOLO(self.model_path)
-                self.model.to(self.device)
-            except Exception as e:
-                print('YOLO load failed:', e)
-                self.model = None
-
-    def stop(self):
-        self._stop.set()
-
     def run(self):
         src = self.source
         try:
@@ -60,10 +34,129 @@ class Worker(QtCore.QObject):
             src_i = src
 
         cap = cv2.VideoCapture(src_i)
-        if not cap.isOpened():
-            print('Failed to open capture source:', src)
+        interval = 1.0 / max(1, int(self.fps))
+        last = time.time()
+
+        # Primary loop using OpenCV VideoCapture when available
+        if cap.isOpened():
+            while not self._stop.is_set():
+                ret, frame = cap.read()
+                if not ret:
+                    time.sleep(0.05)
+                    continue
+
+                # inference
+                if self.model is not None:
+                    try:
+                        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        results = self.model(rgb)
+                        try:
+                            ann = results[0].plot()
+                            if isinstance(ann, np.ndarray):
+                                frame = ann
+                        except Exception:
+                            pass
+                    except Exception as e:
+                        print('Inference error:', e)
+
+                self.frame_ready.emit(frame)
+
+                elapsed = time.time() - last
+                to_sleep = interval - elapsed
+                if to_sleep > 0:
+                    time.sleep(to_sleep)
+                last = time.time()
+
+            cap.release()
             self.finished.emit()
             return
+
+        # If OpenCV couldn't open the source and it's an HTTP URL, try MJPEG fallback
+        if isinstance(src, str) and src.lower().startswith('http'):
+            try:
+                resp = requests.get(src, stream=True, timeout=5)
+                if resp.status_code != 200:
+                    print('MJPEG fallback HTTP status:', resp.status_code)
+                    self.finished.emit()
+                    return
+
+                bytes_buf = b''
+                for chunk in resp.iter_content(chunk_size=1024):
+                    if self._stop.is_set():
+                        break
+                    if not chunk:
+                        continue
+                    bytes_buf += chunk
+                    a = bytes_buf.find(b'\xff\xd8')
+                    b = bytes_buf.find(b'\xff\xd9')
+                    if a != -1 and b != -1 and b > a:
+                        jpg = bytes_buf[a:b+2]
+                        bytes_buf = bytes_buf[b+2:]
+                        img = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
+                        if img is None:
+                            continue
+
+                        frame = img
+
+                        # inference
+                        if self.model is not None:
+                            try:
+                                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                                results = self.model(rgb)
+                                try:
+                                    ann = results[0].plot()
+                                    if isinstance(ann, np.ndarray):
+                                        frame = ann
+                                except Exception:
+                                    pass
+                            except Exception as e:
+                                print('Inference error:', e)
+
+                        self.frame_ready.emit(frame)
+
+                        elapsed = time.time() - last
+                        to_sleep = interval - elapsed
+                        if to_sleep > 0:
+                            time.sleep(to_sleep)
+                        last = time.time()
+
+                resp.close()
+            except Exception as e:
+                print('MJPEG fallback failed:', e)
+
+        print('Failed to open capture source:', src)
+        self.finished.emit()
+                            frame = img
+
+                            # inference
+                            if self.model is not None:
+                                try:
+                                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                                    results = self.model(rgb)
+                                    try:
+                                        ann = results[0].plot()
+                                        if isinstance(ann, np.ndarray):
+                                            frame = ann
+                                    except Exception:
+                                        pass
+                                except Exception as e:
+                                    print('Inference error:', e)
+
+                            self.frame_ready.emit(frame)
+
+                            # regulate FPS roughly
+                            elapsed = time.time() - last
+                            to_sleep = interval - elapsed
+                            if to_sleep > 0:
+                                time.sleep(to_sleep)
+                            last = time.time()
+
+                    resp.close()
+                except Exception as e:
+                    print('MJPEG fallback failed:', e)
+
+            print('Failed to open capture source:', src)
+            self.finished.emit()
 
         interval = 1.0 / max(1, int(self.fps))
         last = time.time()
