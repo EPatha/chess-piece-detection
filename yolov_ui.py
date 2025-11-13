@@ -77,14 +77,21 @@ class Worker(QtCore.QObject):
 
     def _open_mjpeg(self):
         """Manual MJPEG reader using requests; emits frames."""
+        print(f"[DEBUG] Attempting manual MJPEG from: {self.source}")
         try:
-            resp = requests.get(self.source, stream=True, timeout=5)
+            resp = requests.get(self.source, stream=True, timeout=10)
+            print(f"[DEBUG] HTTP Status: {resp.status_code}")
+            print(f"[DEBUG] Headers: {dict(resp.headers)}")
             resp.raise_for_status()
+            
             buf = b""
             interval = 1.0 / self.fps
             last = time.time()
+            frame_count = 0
+            
             for chunk in resp.iter_content(chunk_size=4096):
                 if self._stop.is_set():
+                    print("[DEBUG] Stop signal received, exiting MJPEG reader")
                     break
                 if not chunk:
                     continue
@@ -96,7 +103,11 @@ class Worker(QtCore.QObject):
                     buf = buf[end + 2 :]
                     img = cv2.imdecode(np.frombuffer(jpg, dtype=np.uint8), cv2.IMREAD_COLOR)
                     if img is None:
+                        print("[DEBUG] Failed to decode JPEG frame")
                         continue
+                    frame_count += 1
+                    if frame_count <= 3:
+                        print(f"[DEBUG] Frame {frame_count} decoded successfully: {img.shape}")
                     img = self._infer(img)
                     self.frame_ready.emit(CaptureResult(img, time.time()))
                     sleep = interval - (time.time() - last)
@@ -107,8 +118,11 @@ class Worker(QtCore.QObject):
                 resp.close()
             except Exception:
                 pass
+            print(f"[DEBUG] MJPEG reader finished. Total frames: {frame_count}")
         except Exception as e:
-            print("[WARN] MJPEG fallback failed:", e)
+            print(f"[ERROR] MJPEG fallback failed: {e}")
+            import traceback
+            traceback.print_exc()
 
     def run(self):
         # parse source as int when possible
