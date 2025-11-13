@@ -244,7 +244,6 @@ class YOLOGui(QtWidgets.QWidget):
 
         # hooks / connections
         self.thread.started.connect(self.worker.run)
-        # show status messages from worker in the status bar
         self.worker.status.connect(self.status.showMessage)
         self.worker.frame_ready.connect(self._on_frame)
         self.worker.finished.connect(self.thread.quit)
@@ -254,6 +253,7 @@ class YOLOGui(QtWidgets.QWidget):
         self.thread.start()
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
+
 
     def stop(self):
         if self.worker:
