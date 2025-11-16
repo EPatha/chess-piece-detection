@@ -41,6 +41,7 @@ class Worker(QtCore.QObject):
         device: str = "cpu",
         fps: int = 10,
         manual_mjpeg: bool = False,
+        conf_threshold: float = 0.15,  # Lower confidence for better detection
     ):
         super().__init__()
         self.source = source
@@ -48,6 +49,7 @@ class Worker(QtCore.QObject):
         self.fps = max(1, int(fps))
         self._stop = threading.Event()
         self.manual_mjpeg = bool(manual_mjpeg)
+        self.conf_threshold = conf_threshold
 
         self.model = None
         if YOLO and model_path:
@@ -64,7 +66,12 @@ class Worker(QtCore.QObject):
         if not self.model:
             return frame
         try:
-            res = self.model(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            # Run inference with configured confidence threshold
+            res = self.model(
+                cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
+                conf=self.conf_threshold,  # Use custom threshold
+                verbose=False
+            )
             try:
                 annotated = res[0].plot()
                 if isinstance(annotated, np.ndarray):
@@ -188,13 +195,20 @@ class YOLOGui(QtWidgets.QWidget):
 
         # Inputs
         self.src = QtWidgets.QLineEdit("0")  # Use built-in webcam for testing (change to 0, 1, or DroidCam URL)
-        self.model = QtWidgets.QLineEdit("runs/chess_detect/train/weights/best.pt")  # Chess detection model
+        self.model = QtWidgets.QLineEdit("runs/chess_detect/train3/weights/best.pt")  # Chess detection model
         self.device = QtWidgets.QComboBox()
         self.device.addItems(["cpu", "cuda"])
         self.fps = QtWidgets.QSpinBox()
         self.fps.setRange(1, 60)
         self.fps.setValue(10)
         self.force_mjpeg = QtWidgets.QCheckBox("Force manual MJPEG (debug)")
+        
+        # Confidence threshold control
+        self.conf_threshold = QtWidgets.QDoubleSpinBox()
+        self.conf_threshold.setRange(0.05, 0.95)
+        self.conf_threshold.setSingleStep(0.05)
+        self.conf_threshold.setValue(0.15)  # Optimal for chess detection
+        self.conf_threshold.setDecimals(2)
 
         self.start_btn = QtWidgets.QPushButton("Start")
         self.stop_btn = QtWidgets.QPushButton("Stop")
@@ -205,6 +219,7 @@ class YOLOGui(QtWidgets.QWidget):
         form.addRow("Model:", self.model)
         form.addRow("Device:", self.device)
         form.addRow("FPS:", self.fps)
+        form.addRow("Confidence:", self.conf_threshold)
         form.addRow("Manual MJPEG:", self.force_mjpeg)
 
         control_layout = QtWidgets.QHBoxLayout()
@@ -250,10 +265,18 @@ class YOLOGui(QtWidgets.QWidget):
         model = self.model.text().strip() or None
         device = self.device.currentText()
         fps = int(self.fps.value())
+        conf = float(self.conf_threshold.value())  # Get confidence threshold
 
         self.thread = QtCore.QThread()
         force_manual = bool(self.force_mjpeg.isChecked())
-        self.worker = Worker(src, model_path=model, device=device, fps=fps, manual_mjpeg=force_manual)
+        self.worker = Worker(
+            src,
+            model_path=model,
+            device=device,
+            fps=fps,
+            manual_mjpeg=force_manual,
+            conf_threshold=conf  # Pass confidence threshold
+        )
         self.worker.moveToThread(self.thread)
 
         # hooks / connections

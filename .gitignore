@@ -1,0 +1,153 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+.virtualenv/
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Training Results (YOLOv8)
+runs/
+runs/*/
+!runs/.gitkeep
+
+# Trained Models (keep only best.pt if needed)
+*.pt
+*.pth
+*.onnx
+*.engine
+*.tflite
+!yolov8n.pt
+
+# Dataset (exclude large files)
+datasets/
+dataset/
+data/raw/
+*.zip
+*.tar
+*.tar.gz
+
+# Logs
+*.log
+logs/
+tensorboard/
+wandb/
+
+# Detection Analysis Output
+detection_analysis/
+output/
+results/
+predictions/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Video files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# Image files (exclude test images)
+# *.jpg
+# *.jpeg
+# *.png
+# *.gif
+# *.bmp
+
+# Camera snapshots
+camera_*_snapshot.*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Documentation build
+docs/_build/
+
+# Backup files
+*.bak
+*.backup
+backup/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# PyTorch specific
+*.pth.tar
+checkpoint*.pth
+
+# Roboflow dataset (very large)
+Chess Pieces Detection Dataset/
+Chess Pieces Dataset 416x416/
+roboflow/
+
+# Keep important files
+!README.md
+!requirements.txt
+!LICENSE
+!.gitignore
+!setup_droidcam.md
+!FIX_CAMERA_PERMISSION.md
