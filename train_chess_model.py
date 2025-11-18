@@ -12,13 +12,13 @@ Output:
 
 import argparse
 from pathlib import Path
-from ultralytics import YOLO
+from ultralytics import YOLO # type: ignore
 
 
 def train_chess_model(
     data_yaml: str = "Chess Pieces Detection Dataset/data.yaml",
     model: str = "yolov8n.pt",  # yolov8n, yolov8s, yolov8m, yolov8l, yolov8x
-    epochs: int = 100,
+    epochs: int = 1,
     imgsz: int = 640,
     batch: int = 16,
     device: str = "cpu",  # cpu or cuda or mps (Apple Silicon)
@@ -84,7 +84,7 @@ def main():
                         help="Path to data.yaml")
     parser.add_argument("--model", type=str, default="yolov8n.pt",
                         help="YOLOv8 model variant (yolov8n/s/m/l/x)")
-    parser.add_argument("--epochs", type=int, default=100,
+    parser.add_argument("--epochs", type=int, default=50,
                         help="Number of training epochs")
     parser.add_argument("--imgsz", type=int, default=640,
                         help="Image size for training")
