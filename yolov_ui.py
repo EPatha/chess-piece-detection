@@ -194,7 +194,7 @@ class YOLOGui(QtWidgets.QWidget):
         self.resize(900, 640)
 
         # Inputs
-        self.src = QtWidgets.QLineEdit("0")  # Use built-in webcam for testing (change to 0, 1, or DroidCam URL)
+        self.src = QtWidgets.QLineEdit("http://127.0.0.1:4747/video")  # DroidCam USB (or use "0" for built-in webcam)
         self.model = QtWidgets.QLineEdit("runs/chess_detect/train3/weights/best.pt")  # Chess detection model
         self.device = QtWidgets.QComboBox()
         self.device.addItems(["cpu", "cuda"])

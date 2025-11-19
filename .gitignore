@@ -151,3 +151,33 @@ roboflow/
 !.gitignore
 !setup_droidcam.md
 !FIX_CAMERA_PERMISSION.md
+
+# Additional files to ignore
+
+# DroidCam specific
+droidcam/
+.droidcam/
+
+# Test outputs
+test_output/
+detection_output/
+camera_test/
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor specific
+*.sublime-*
+.history/
+
+# Large image datasets (keep sample images only)
+Chess\ Pieces\ Detection\ Dataset/
+Chess\ Pieces\ Dataset\ 416x416/
+Chess\ Pieces\ Raw\ Yolov8.zip
+*.dataset/
+
+# Keep only necessary documentation
+!QUICK_START.md
+!TRAINING_GUIDE.md
