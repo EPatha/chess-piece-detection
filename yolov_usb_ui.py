@@ -312,6 +312,16 @@ def main():
     
     # Create and show main window
     window = YOLOGui()
+    
+    # Set camera ID from command line argument if provided
+    if len(sys.argv) > 1:
+        try:
+            cam_id = int(sys.argv[1])
+            window.camera_input.setText(str(cam_id))
+            print(f"📷 Camera ID set to: {cam_id}")
+        except ValueError:
+            print(f"⚠️  Invalid camera ID: {sys.argv[1]}")
+    
     window.show()
     
     sys.exit(app.exec_())
