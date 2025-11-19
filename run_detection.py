@@ -30,30 +30,63 @@ def check_command(cmd):
         return False
 
 
+def install_homebrew():
+    """Auto-install Homebrew"""
+    print("📦 Installing Homebrew...\n")
+    print("⏳ This may take a few minutes. Please wait...\n")
+    
+    try:
+        # Install Homebrew
+        install_cmd = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+        result = subprocess.run(
+            install_cmd,
+            shell=True,
+            check=True,
+            text=True
+        )
+        
+        print("\n✅ Homebrew installed successfully!")
+        
+        # Add Homebrew to PATH for Apple Silicon Macs
+        brew_path = "/opt/homebrew/bin/brew"
+        if os.path.exists(brew_path):
+            # Update current session PATH
+            os.environ["PATH"] = f"/opt/homebrew/bin:{os.environ['PATH']}"
+            print("✅ Added Homebrew to PATH")
+        
+        return True
+        
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Homebrew installation failed: {e}")
+        print("\n📋 Install manual:")
+        print('   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"')
+        return False
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        return False
+
+
 def install_adb():
     """Auto-install ADB via Homebrew"""
-    print("📦 ADB belum terinstall. Installing via Homebrew...\n")
+    print("📦 Installing ADB (Android Platform Tools)...\n")
     
     # Check if Homebrew installed
     if not check_command("brew"):
-        print("❌ Homebrew not found!")
-        print("\n📋 Install Homebrew dulu:")
-        print("   /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
-        print("\nSetelah Homebrew terinstall, jalankan script ini lagi.")
-        return False
+        print("⚠️  Homebrew not found. Installing Homebrew first...\n")
+        if not install_homebrew():
+            return False
     
-    print("✅ Homebrew found. Installing android-platform-tools...")
+    print("✅ Homebrew ready. Installing android-platform-tools...\n")
     
     try:
         # Install ADB
         result = subprocess.run(
             ["brew", "install", "android-platform-tools"],
             check=True,
-            capture_output=True,
             text=True
         )
         
-        print("✅ ADB successfully installed!")
+        print("\n✅ ADB successfully installed!")
         
         # Verify installation
         if check_command("adb"):
@@ -67,11 +100,19 @@ def install_adb():
             return True
         else:
             print("⚠️  ADB installed but not found in PATH")
-            print("Try closing and reopening Terminal")
-            return False
+            print("Reloading environment...")
+            # Try to find ADB in Homebrew path
+            brew_adb = "/opt/homebrew/bin/adb"
+            if os.path.exists(brew_adb):
+                os.environ["PATH"] = f"/opt/homebrew/bin:{os.environ['PATH']}"
+                print("✅ ADB found and added to PATH")
+                return True
+            else:
+                print("⚠️  Please restart terminal and run script again")
+                return False
             
     except subprocess.CalledProcessError as e:
-        print(f"❌ Installation failed: {e}")
+        print(f"❌ ADB installation failed: {e}")
         print("\n📋 Install manual:")
         print("   brew install android-platform-tools")
         return False
@@ -126,26 +167,19 @@ def main():
     print("🔍 Checking ADB installation...\n")
     
     if not check_command("adb"):
-        print("⚠️  ADB not found")
+        print("⚠️  ADB not found. Installing automatically...\n")
         
-        # Ask user for auto-install
-        try:
-            response = input("\n📦 Install ADB automatically? (y/n): ").lower().strip()
-            
-            if response == 'y' or response == 'yes':
-                if not install_adb():
-                    print("\n❌ Installation failed. Please install manually:")
-                    print("   brew install android-platform-tools")
-                    sys.exit(1)
-                print("\n✅ ADB installed successfully!")
-            else:
-                print("\n📋 Manual installation:")
-                print("   brew install android-platform-tools")
-                print("\nJalankan script ini lagi setelah install.")
-                sys.exit(1)
-        except KeyboardInterrupt:
-            print("\n\n❌ Cancelled by user")
+        if not install_adb():
+            print("\n❌ Auto-installation failed!")
+            print("\n📋 Manual installation:")
+            print("   1. Install Homebrew:")
+            print('      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"')
+            print("   2. Install ADB:")
+            print("      brew install android-platform-tools")
+            print("\n💡 Jalankan script ini lagi setelah install.")
             sys.exit(1)
+        
+        print("\n✅ ADB installed successfully!")
     else:
         print("✅ ADB already installed")
         # Show version
