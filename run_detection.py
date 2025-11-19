@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 Automatic DroidCam USB Setup + Chess Detection Launcher
-Setup camera HP Android via USB dan launch detection
+Auto-install ADB jika belum terinstall, setup camera HP Android via USB
 """
 import subprocess
 import sys
 import os
 import time
 import urllib.request
+
 
 def print_header(text):
     print(f"\n{'='*60}")
@@ -26,6 +27,56 @@ def check_command(cmd):
         )
         return result.returncode == 0
     except Exception:
+        return False
+
+
+def install_adb():
+    """Auto-install ADB via Homebrew"""
+    print("📦 ADB belum terinstall. Installing via Homebrew...\n")
+    
+    # Check if Homebrew installed
+    if not check_command("brew"):
+        print("❌ Homebrew not found!")
+        print("\n📋 Install Homebrew dulu:")
+        print("   /bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
+        print("\nSetelah Homebrew terinstall, jalankan script ini lagi.")
+        return False
+    
+    print("✅ Homebrew found. Installing android-platform-tools...")
+    
+    try:
+        # Install ADB
+        result = subprocess.run(
+            ["brew", "install", "android-platform-tools"],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        
+        print("✅ ADB successfully installed!")
+        
+        # Verify installation
+        if check_command("adb"):
+            # Get version
+            version_result = subprocess.run(
+                ["adb", "version"],
+                capture_output=True,
+                text=True
+            )
+            print(f"\n{version_result.stdout.strip()}")
+            return True
+        else:
+            print("⚠️  ADB installed but not found in PATH")
+            print("Try closing and reopening Terminal")
+            return False
+            
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Installation failed: {e}")
+        print("\n📋 Install manual:")
+        print("   brew install android-platform-tools")
+        return False
+    except Exception as e:
+        print(f"❌ Error: {e}")
         return False
 
 
@@ -71,15 +122,42 @@ def test_droidcam():
 def main():
     print_header("🚀 DroidCam USB + Chess Detection Launcher")
     
-    # Step 1: Check ADB
-    print("🔍 Checking requirements...\n")
+    # Step 1: Check & Install ADB
+    print("🔍 Checking ADB installation...\n")
+    
     if not check_command("adb"):
-        print("❌ ADB not installed!")
-        print("\n📦 Install dengan:")
-        print("   brew install android-platform-tools")
-        print("\nSetelah install, jalankan script ini lagi.")
-        sys.exit(1)
-    print("✅ ADB installed")
+        print("⚠️  ADB not found")
+        
+        # Ask user for auto-install
+        try:
+            response = input("\n📦 Install ADB automatically? (y/n): ").lower().strip()
+            
+            if response == 'y' or response == 'yes':
+                if not install_adb():
+                    print("\n❌ Installation failed. Please install manually:")
+                    print("   brew install android-platform-tools")
+                    sys.exit(1)
+                print("\n✅ ADB installed successfully!")
+            else:
+                print("\n📋 Manual installation:")
+                print("   brew install android-platform-tools")
+                print("\nJalankan script ini lagi setelah install.")
+                sys.exit(1)
+        except KeyboardInterrupt:
+            print("\n\n❌ Cancelled by user")
+            sys.exit(1)
+    else:
+        print("✅ ADB already installed")
+        # Show version
+        try:
+            version = subprocess.run(
+                ["adb", "version"],
+                capture_output=True,
+                text=True
+            )
+            print(f"   {version.stdout.splitlines()[0]}")
+        except Exception:
+            pass
     
     # Step 2: Check Android device
     print("\n📱 Checking Android device via USB...\n")
@@ -95,7 +173,8 @@ def main():
         print("  3. Popup 'Allow USB Debugging' sudah di-OK?")
         print("  4. DroidCam app sudah diinstall dari Play Store?")
         print("  5. DroidCam app sudah TERBUKA di HP?")
-        print("\nSetelah fix, jalankan script ini lagi.")
+        print("\n💡 Setelah fix, jalankan script ini lagi:")
+        print("   python3 run_detection.py")
         sys.exit(1)
     
     print(f"✅ Android device connected: {devices[0]}")
@@ -128,11 +207,13 @@ def main():
             print(f"  Retry {i+1}/10...")
         else:
             print("\n❌ Cannot connect to DroidCam")
-            print("\nTroubleshooting:")
+            print("\n💡 Troubleshooting:")
             print("  1. Buka DroidCam app di HP")
             print("  2. Pastikan tidak ada error di app")
             print("  3. Coba restart DroidCam app")
-            print("  4. Jalankan script ini lagi")
+            print("  4. Test manual:")
+            print("     curl -I http://127.0.0.1:4747/video")
+            print("  5. Jalankan script ini lagi")
             sys.exit(1)
     else:
         print("✅ DroidCam is ready!")
@@ -143,6 +224,7 @@ def main():
         print(f"\n✅ Model ready: {model_path}")
     else:
         print(f"\n⚠️  Warning: Model not found at {model_path}")
+        print("Model will be downloaded on first run.")
     
     # Launch UI
     print_header("🎬 Launching Chess Detection UI")
