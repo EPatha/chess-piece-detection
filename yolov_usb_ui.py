@@ -317,7 +317,7 @@ def main():
     if len(sys.argv) > 1:
         try:
             cam_id = int(sys.argv[1])
-            window.camera_input.setText(str(cam_id))
+            window.camera_id.setValue(cam_id)
             print(f"📷 Camera ID set to: {cam_id}")
         except ValueError:
             print(f"⚠️  Invalid camera ID: {sys.argv[1]}")
