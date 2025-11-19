@@ -1,5 +1,5 @@
 # chess-vision-for-blind
-
+Make ipynb file
 ## Petunjuk singkat: annotasi papan 8x8 dan pemetaan kotak
 
 Saya menambahkan utilitas sederhana untuk membantu anotasi papan catur dan pemetaan titik pixel ke kotak (algebraic: a1..h8).
