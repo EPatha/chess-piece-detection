@@ -18,7 +18,7 @@ def train_chessboard_model():
     model_name = "yolov8n.pt"  # Nano model (fastest)
     # Alternative: yolov8s.pt (small), yolov8m.pt (medium)
     
-    epochs = 50
+    epochs = 10
     img_size = 640
     batch_size = 16
     
