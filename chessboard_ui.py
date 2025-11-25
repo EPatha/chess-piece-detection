@@ -28,7 +28,7 @@ class Worker(QtCore.QObject):
         if model_path:
             self.model = YOLO(model_path)
         else:
-            self.model = YOLO("runs/chessboard_detect/chessboard_grid/weights/best.pt")
+            self.model = YOLO("runs/chessboard_detect/chessboard_grid8/weights/best.pt")
         
         self.status.emit(f"Model loaded: {len(self.model.names)} classes")
 
@@ -122,7 +122,7 @@ class ChessboardDetectionGUI(QtWidgets.QMainWindow):
         # Model path
         control_layout.addWidget(QtWidgets.QLabel("Model:"))
         self.model_path = QtWidgets.QLineEdit()
-        self.model_path.setText("runs/chessboard_detect/chessboard_grid/weights/best.pt")
+        self.model_path.setText("runs/chessboard_detect/chessboard_grid8/weights/best.pt")
         control_layout.addWidget(self.model_path)
         
         # Start/Stop buttons

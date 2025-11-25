@@ -7,7 +7,7 @@ import cv2
 import sys
 
 
-def test_model(image_path=None, model_path="runs/chessboard_detect/chessboard_grid/weights/best.pt"):
+def test_model(image_path=None, model_path="runs/chessboard_detect/chessboard_grid8/weights/best.pt"):
     """Test chessboard detection model"""
     
     print("\n" + "="*60)
