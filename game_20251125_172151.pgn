@@ -1,0 +1,9 @@
+[Event "BlindChess Vision Game"]
+[Site "?"]
+[Date "2025.11.25"]
+[Round "?"]
+[White "Player"]
+[Black "Player"]
+[Result "*"]
+
+1. e4 e5 2. Bc4 Qf6 3. Nf3 Nc6 4. O-O d5 5. Bb3 d4 6. c4 dxc3 7. Re1 c2 8. Nh4 Bg4 9. Qf3 O-O-O 10. Qf5+ Kb8 11. Qd7 Nce7 12. d3 Rxd7 13. Kf1 Qf3 14. Re3 Qe2+ 15. Kg1 Qd1+ 16. Re1 Qe2 17. Rd1 Nf6 18. Rd2 Qe1# *
