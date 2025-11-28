@@ -1,0 +1,12 @@
+{
+    "features": {
+        "clock_mode": true,
+        "sync_edit": true,
+        "game_mode": true,
+        "yolo_enabled": false,
+        "copy_paste_fen": true
+    },
+    "camera": {
+        "default_index": 0
+    }
+}
