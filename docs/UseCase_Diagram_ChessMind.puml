@@ -1,0 +1,192 @@
+@startuml
+'==============================================================================
+' ChessMind Hybrid Vision System - Use Case Diagram
+' Created: January 2026
+' Description: Complete use case diagram showing all system functionalities
+'==============================================================================
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+' ===== STYLING =====
+skinparam usecase {
+    BackgroundColor #E3F2FD
+    BorderColor #1976D2
+    BorderThickness 2
+    FontSize 12
+}
+
+skinparam actor {
+    BackgroundColor #FFF9C4
+    BorderColor #F57F17
+    FontSize 12
+}
+
+skinparam package {
+    BackgroundColor #F5F5F5
+    BorderColor #616161
+    FontSize 14
+    FontStyle bold
+}
+
+' ===== ACTORS =====
+actor "Pemain Catur\n(User)" as User #LightBlue
+actor "Kamera\n(Camera Device)" as Camera #LightGreen
+actor "Stockfish\nEngine" as Engine #LightCoral
+actor "Sistem\n(System)" as System #LightYellow
+
+' ===== MAIN SYSTEM BOUNDARY =====
+rectangle "ChessMind Hybrid Vision System" #WhiteSmoke {
+
+    ' ===== BOARD SETUP PACKAGE =====
+    package "Board Calibration" #F0F4C3 {
+        usecase "UC1\nKalibrasi Papan\nManual" as UC1
+        usecase "UC2\nDeteksi Otomatis\nPapan" as UC2
+    }
+
+    ' ===== CONFIGURATION PACKAGE =====
+    package "System Configuration" #FFE0B2 {
+        usecase "UC8\nKonfigurasi\nSistem" as UC8
+        usecase "UC9\nLoad YOLO\nModel" as UC9
+        usecase "UC10\nSinkronisasi\nBoard dari Kamera" as UC10
+    }
+
+    ' ===== GAMEPLAY PACKAGE =====
+    package "Gameplay Management" #C8E6C9 {
+        usecase "UC3\nMulai Permainan\nBaru" as UC3
+        usecase "UC4\nDeteksi Gerakan\nBuah Catur" as UC4
+        usecase "UC5\nValidasi Legalitas\nMove" as UC5
+        usecase "UC11\nUndo Move" as UC11
+    }
+
+    ' ===== ANALYSIS PACKAGE =====
+    package "Analysis & Feedback" #BBDEFB {
+        usecase "UC6\nAnalisis Posisi\ndengan Engine" as UC6
+        usecase "UC12\nAudio\nAnnouncement" as UC12
+    }
+
+    ' ===== OUTPUT PACKAGE =====
+    package "Game Recording" #E1BEE7 {
+        usecase "UC7\nExport Permainan\nke PGN" as UC7
+    }
+}
+
+' ===== USER INTERACTIONS =====
+User --> UC1 : "Klik 4 sudut papan"
+User --> UC2 : "Trigger auto-detect"
+User --> UC3 : "Start new game"
+User --> UC7 : "Save game"
+User --> UC8 : "Open settings"
+User --> UC9 : "Browse & load model"
+User --> UC10 : "Sync position"
+User --> UC11 : "Undo last move"
+
+' ===== CAMERA INTERACTIONS =====
+UC1 ..> Camera : <<communicate>>
+UC2 ..> Camera : <<communicate>>
+UC4 ..> Camera : <<communicate>>
+UC10 ..> Camera : <<communicate>>
+
+' ===== ENGINE INTERACTIONS =====
+UC6 ..> Engine : <<communicate>>
+
+' ===== SYSTEM INTERACTIONS =====
+UC7 ..> System : <<communicate>>
+UC9 ..> System : <<communicate>>
+UC12 ..> System : <<communicate>>
+
+' ===== USE CASE RELATIONSHIPS =====
+
+' Include relationships (mandatory)
+UC3 .down.> UC4 : <<include>>
+UC4 .down.> UC5 : <<include>>
+
+' Extend relationships (optional)
+UC6 .up.> UC5 : <<extend>>
+UC12 .up.> UC5 : <<extend>>
+UC11 .left.> UC3 : <<extend>>
+
+' ===== DOCUMENTATION NOTES =====
+note right of UC1
+  <b>Precondition:</b>
+  - Kamera aktif
+  - Papan catur terlihat
+  
+  <b>Postcondition:</b>
+  - Homography matrix tersimpan
+  - Warp perspective aktif
+end note
+
+note right of UC2
+  <b>Algoritma:</b>
+  1. Canny edge detection
+  2. Find contours
+  3. Filter 4 corners
+  4. Compute homography
+end note
+
+note bottom of UC4
+  <b>Metode Deteksi:</b>
+  - Color-based (HSV)
+  - YOLO object detection
+  - Hybrid (kombinasi)
+end note
+
+note bottom of UC5
+  <b>Validasi menggunakan:</b>
+  - python-chess library
+  - chess.Board.is_legal()
+  
+  <b>Stability check:</b>
+  - 5 frame konsisten
+end note
+
+note right of UC6
+  <b>Optional Feature</b>
+  Hanya aktif jika:
+  - Engine enabled
+  - Game mode = True
+  
+  <b>Output:</b>
+  - Evaluasi (centipawn/mate)
+  - Best move suggestion
+end note
+
+note right of UC12
+  <b>Optional Feature</b>
+  Hanya aktif jika:
+  - Audio enabled
+  
+  <b>Platform:</b>
+  - macOS: say
+  - Linux: espeak
+  - Windows: pyttsx3
+end note
+
+note bottom of UC10
+  <b>Scan Process:</b>
+  1. Run YOLO detection
+  2. Collect 30 frames
+  3. Vote majority class
+  4. Set board position
+end note
+
+' ===== LEGEND =====
+legend bottom right
+  |<#E3F2FD> Use Case |
+  |<#F0F4C3> Board Calibration |
+  |<#FFE0B2> Configuration |
+  |<#C8E6C9> Gameplay |
+  |<#BBDEFB> Analysis |
+  |<#E1BEE7> Output |
+  
+  <b>Relasi:</b>
+  ---> : User interaction
+  ..> : Include/Extend/Communicate
+  <<include>> : Mandatory step
+  <<extend>> : Optional feature
+  <<communicate>> : External interaction
+end legend
+
+@enduml

@@ -1,0 +1,114 @@
+@startuml
+left to right direction
+skinparam linetype ortho
+
+' ===== ACTORS =====
+actor "User/Pemain" as User
+actor "Camera Device" as Camera
+actor "Stockfish Engine" as Engine
+actor "System" as System
+
+' ===== MAIN SYSTEM =====
+package "ChessMind Hybrid System" {
+
+    ' ===== BOARD CALIBRATION =====
+    package "Board Setup" {
+        usecase "Kalibrasi Papan Manual" as UC1
+        usecase "Deteksi Otomatis Papan" as UC2
+    }
+
+    ' ===== CONFIGURATION =====
+    package "Configuration" {
+        usecase "Konfigurasi Sistem" as UC8
+        usecase "Load YOLO Model" as UC9
+        usecase "Sinkronisasi Board" as UC10
+    }
+
+    ' ===== GAMEPLAY =====
+    package "Gameplay" {
+        usecase "Mulai Permainan" as UC3
+        usecase "Deteksi Gerakan Buah" as UC4
+        usecase "Validasi Legalitas Move" as UC5
+        usecase "Undo Move" as UC11
+    }
+
+    ' ===== ANALYSIS & FEEDBACK =====
+    package "Analysis & Feedback" {
+        usecase "Analisis Posisi" as UC6
+        usecase "Audio Announcement" as UC12
+    }
+
+    ' ===== OUTPUT =====
+    package "Output" {
+        usecase "Export ke PGN" as UC7
+    }
+}
+
+' ===== USER CONNECTIONS (LEFT) =====
+User --> UC1 : "Manual calibration"
+User --> UC2 : "Auto-detect board"
+User --> UC3 : "Start new game"
+User --> UC7 : "Export game"
+User --> UC8 : "Configure system"
+User --> UC9 : "Load model"
+User --> UC10 : "Sync from camera"
+User --> UC11 : "Undo last move"
+
+' ===== CAMERA CONNECTIONS (RIGHT) =====
+UC1 --> Camera : "Calibration points"
+UC2 --> Camera : "Auto-detect"
+UC4 --> Camera : "Detect changes"
+UC10 --> Camera : "Scan board state"
+
+' ===== ENGINE CONNECTIONS (RIGHT) =====
+UC6 --> Engine : "Analyze position"
+
+' ===== SYSTEM CONNECTIONS (RIGHT) =====
+UC7 --> System : "Save PGN file"
+UC9 --> System : "Load model file"
+UC12 --> System : "Text-to-speech"
+
+' ===== USE CASE RELATIONSHIPS =====
+
+' Gameplay flow (include)
+UC3 ..> UC4 : <<include>>
+UC4 ..> UC5 : <<include>>
+
+' Optional features (extend)
+UC6 ..> UC5 : <<extend>>
+UC12 ..> UC5 : <<extend>>
+UC11 ..> UC3 : <<extend>>
+
+' ===== NOTES =====
+note right of UC1
+  User manually clicks
+  4 corners of the board
+end note
+
+note right of UC2
+  System auto-detects
+  board using edge detection
+end note
+
+note bottom of UC4
+  Monitors board state
+  changes in real-time
+end note
+
+note bottom of UC5
+  Validates moves against
+  chess rules using
+  python-chess library
+end note
+
+note right of UC6
+  Optional: Only if
+  engine analysis is enabled
+end note
+
+note right of UC12
+  Optional: Only if
+  audio feedback is enabled
+end note
+
+@enduml
