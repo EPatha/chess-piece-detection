@@ -320,19 +320,6 @@ class MainWindow(QMainWindow):
         self.correction_btn.clicked.connect(self.open_manual_correction)
         col2_layout.addWidget(self.correction_btn, 0, Qt.AlignCenter)
         
-        # FEN Controls
-        if self.config_manager.get("features.copy_paste_fen", True):
-            fen_row = QHBoxLayout()
-            fen_row.addStretch()
-            self.copy_fen_btn = QPushButton("Copy FEN")
-            self.paste_fen_btn = QPushButton("Paste FEN")
-            self.copy_fen_btn.clicked.connect(self.copy_fen)
-            self.paste_fen_btn.clicked.connect(self.paste_fen)
-            fen_row.addWidget(self.copy_fen_btn)
-            fen_row.addWidget(self.paste_fen_btn)
-            fen_row.addStretch()
-            col2_layout.addLayout(fen_row)
-        
         # Export Buttons
         export_row = QHBoxLayout()
         export_row.addStretch()
@@ -633,51 +620,6 @@ class MainWindow(QMainWindow):
         if dialog.exec_():
             new_fen = dialog.get_fen()
             self.hybrid_manager.apply_manual_correction(new_fen)
-
-    def copy_fen(self):
-        import pyperclip
-        fen = self.hybrid_manager.state_manager.get_fen()
-        pyperclip.copy(fen)
-        self.hybrid_manager.log_message.emit("info", "FEN copied to clipboard.")
-
-    def paste_fen(self):
-        import pyperclip
-        import chess.pgn
-        import io
-        from PyQt5.QtWidgets import QMessageBox
-        
-        content = pyperclip.paste()
-        fen_to_load = None
-        source_type = "FEN"
-
-        # Try parsing as PGN first
-        try:
-            pgn_io = io.StringIO(content)
-            game = chess.pgn.read_game(pgn_io)
-            if game and game.errors == []:
-                # It's a valid PGN
-                fen_to_load = game.end().board().fen()
-                source_type = "PGN"
-        except Exception:
-            pass # Not a PGN or error parsing
-
-        # If not PGN, treat as raw FEN
-        if not fen_to_load:
-            # Basic validation for FEN
-            if len(content.split()) >= 4:
-                fen_to_load = content
-            else:
-                self.hybrid_manager.log_message.emit("error", "Clipboard does not contain valid FEN or PGN.")
-                return
-
-        reply = QMessageBox.question(self, f'Paste {source_type}', 
-                                     f"Load this position from {source_type}?\n{fen_to_load}",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply == QMessageBox.Yes:
-            try:
-                self.hybrid_manager.apply_manual_correction(fen_to_load)
-            except Exception as e:
-                self.hybrid_manager.log_message.emit("error", f"Invalid FEN: {e}")
 
     def show_help(self):
         from ui.dialogs.help_dialog import HelpDialog
